@@ -1,0 +1,22 @@
+# Git files
+.git
+.gitignore
+
+# Node.js
+node_modules
+npm-debug.log
+yarn-error.log
+
+# macOS
+.DS_Store
+
+# WordPress Uploads (devono essere in un volume, non nell'immagine)
+src/wp-content/uploads/
+
+# File di configurazione locale
+.env
+*.local
+
+# Documentazione e file di progetto non necessari nell'immagine
+README.md
+Makefile

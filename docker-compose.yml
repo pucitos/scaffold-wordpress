@@ -1,0 +1,95 @@
+version: '3.8'
+# Questo file è per l'ambiente di produzione
+# Assicurati di avere un file .env con le variabili necessarie
+services:
+  db:
+    image: mariadb:10.11 # O altra versione pinnata
+    container_name: ${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-db-prod
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data_prod:/var/lib/mysql
+    networks:
+      - app_network_prod # Rete interna per la comunicazione wordpress-db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wordpress:
+    image: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} # Immagine custom dal registry
+    container_name: ${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-app-prod
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # Le porte non sono esposte direttamente all'host; Si immagina che sia Traefik a gestire l'accesso.
+    # ports:
+    #   - "80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_TABLE_PREFIX: 'wp_'
+      WORDPRESS_DEBUG: 0
+
+      AUTH_KEY: ${AUTH_KEY}
+      SECURE_AUTH_KEY: ${SECURE_AUTH_KEY}
+      # ... (altre chiavi salt) ...
+      NONCE_SALT: ${NONCE_SALT}
+
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_ENVIRONMENT_TYPE', 'production');
+        define('WP_HOME', '${SITE_SCHEME}://${SITE_DOMAIN}');
+        define('WP_SITEURL', '${SITE_SCHEME}://${SITE_DOMAIN}');
+        define('FS_METHOD', 'direct');
+        # $_SERVER['HTTPS'] = 'on'; # A volte necessario se il proxy non imposta X-Forwarded-Proto correttamente
+        # define('WP_MEMORY_LIMIT', '256M');
+    volumes:
+      - wp_uploads_prod:/var/www/html/wp-content/uploads
+    networks:
+      - app_network_prod # Rete per la comunicazione con il DB
+      - traefik-public   # Rete condivisa con Traefik (definita come esterna sotto)
+    labels:
+      - "traefik.enable=true"
+      # Specifica a Traefik quale rete Docker usare per raggiungere questo servizio.
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik-public}"
+
+      # --- Router HTTP (per redirect a HTTPS) ---
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-http.rule=Host(`${SITE_DOMAIN}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-http.entrypoints=web" # Entrypoint HTTP (es. porta 80)
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-http.middlewares=${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-redirectscheme@docker"
+
+      # --- Router HTTPS ---
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-https.rule=Host(`${SITE_DOMAIN}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-https.entrypoints=websecure" # Entrypoint HTTPS (es. porta 443)
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-https.tls=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-https.tls.certresolver=${TRAEFIK_CERTRESOLVER}" # Definito nel .env
+      # Opzionale: aggiungi altri middleware, come quelli per gli header di sicurezza
+      # - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-https.middlewares=mio-chain-di-middleware@docker"
+
+      # --- Middleware per il redirect HTTP -> HTTPS (definito qui) ---
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-redirectscheme.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-redirectscheme.redirectscheme.permanent=true"
+
+      # --- Servizio WordPress per Traefik ---
+      # Dice a Traefik che il container WordPress ascolta internamente sulla porta 80
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-service.loadbalancer.server.port=80"
+
+volumes:
+  db_data_prod:
+  wp_uploads_prod:
+
+networks:
+  app_network_prod:
+    name: ${COMPOSE_PROJECT_NAME:-scaffold-wordpress}_prod_app_network
+    driver: bridge
+  traefik-public: # Rete a cui Traefik è connesso. Assicurati che esista.
+    name: ${TRAEFIK_NETWORK:-traefik-public} # Nome della rete preso da .env o default 'traefik-public'
+    external: true # Deve essere creata esternamente (es. dallo stack Traefik o con 'docker network create traefik-public')

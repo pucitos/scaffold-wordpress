@@ -1,0 +1,253 @@
+# -----------------------------------------------------------------------------
+# File .gitignore per Progetto WordPress con Docker
+# -----------------------------------------------------------------------------
+
+# ---------------------------
+# File di Ambiente Locale e Configurazioni Sensibili
+# ---------------------------
+.env
+.env.*.local
+.env.local
+*.local
+
+# File di configurazione specifici per l'utente/ambiente
+# Esempio: wp-config-local.php (se usato per override locali)
+# wp-config-local.php
+
+# ---------------------------
+# WordPress Core e File Generati
+# ---------------------------
+# /wp-admin/
+# /wp-includes/
+# /wp-*.php
+# /index.php
+# /xmlrpc.php
+# /license.txt
+# /readme.html
+
+# File di configurazione di WordPress (generato nel container)
+# wp-config.php # Ignora se per qualche motivo ne hai una copia locale 
+
+# Directory degli Uploads (gestita da un volume Docker)
+# È FONDAMENTALE ignorare questa cartella per evitare di committare i media degli utenti.
+/src/wp-content/uploads/
+/wp-content/uploads/
+
+# Cache e file temporanei di WordPress o plugin
+/wp-content/cache/
+/wp-content/temp/
+/wp-content/backup*/
+/wp-content/backups/
+/wp-content/upgrade/
+/wp-content/wp-rocket-config/
+*.log
+debug.log
+error_log
+php_error.log
+query-monitor.*.json
+
+# File di manutenzione di WordPress
+.maintenance
+
+# ---------------------------
+# Dipendenze (Node, Composer, ecc.)
+# ---------------------------
+# Node.js / npm / yarn
+node_modules/
+package-lock.json # Ignora se ogni sviluppatore deve generare la propria o se è gestita da un tema/plugin specifico
+yarn.lock         # Stessa logica di package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.node_repl_history
+
+# Composer (PHP Dependency Manager)
+# Ignora la cartella vendor, le dipendenze dovrebbero essere installate durante la build o runtime.
+/vendor/
+composer.lock # Generalmente è bene committare composer.lock per bloccare le versioni,
+              # ma per uno scaffold potresti volerlo ignorare e lasciare che l'utente decida.
+              # Se lo commetti, assicurati che sia aggiornato.
+              # Per questo scaffold, lo lascio commentato (quindi NON ignorato di default).
+              # Se vuoi ignorarlo, decommenta la riga seguente:
+# composer.lock
+composer.phar
+
+# ---------------------------
+# File e Cartelle Specifici di IDE e Editor
+# ---------------------------
+# JetBrains (PhpStorm, WebStorm, IntelliJ IDEA, ecc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+shelf/ # PhpStorm shelf
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# NetBeans
+nbproject/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+
+# Eclipse
+.project
+.classpath
+.buildpath
+.settings/
+# CDT
+.cproject
+# PDT
+.buildpath
+# JDT
+.settings/
+
+# TextMate
+*.tmproj
+*.tmproject
+tmtags
+
+# Emacs
+*~
+#*#
+.#*
+*.elc
+
+# Vim
+*.swp
+*.swo
+*.[a-z].un~
+Session.vim
+.netrwhist
+
+# Coda
+.coda2/
+
+# ---------------------------
+# File Specifici del Sistema Operativo
+# ---------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+__MACOSX/
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory # KDE
+
+# ---------------------------
+# Log, Backup e File Temporanei Generici
+# ---------------------------
+*.log
+*.log.*
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.swo
+*.swp
+*~
+#*#
+.#*
+
+# ---------------------------
+# Build, Compilazione e Artefatti
+# ---------------------------
+# Esempio per progetti con compilazione frontend (Sass, Less, JS bundlers)
+# /dist/
+# /build/
+# /public/assets/ # Se gli asset compilati vanno qui
+# .sass-cache/
+# .parcel-cache/
+# .cache/
+
+# ---------------------------
+# Strumenti PHP e Test
+# ---------------------------
+# PHPUnit
+phpunit.xml # Se è specifico per l'ambiente locale e non per il progetto
+phpunit.result.cache
+.phpunit.result.cache
+/build/coverage/
+/build/logs/
+/build/phpdox/
+# phpspec
+.phpspec/
+# Behat
+*.phar
+
+# Xdebug
+xdebug.profiler
+xdebug_profiles/
+cachegrind.out.*
+profile.out.*
+
+# ---------------------------
+# File di Archiviazione e Compressione
+# ---------------------------
+*.tar
+*.tgz
+*.gz
+*.zip
+*.rar
+*.7z
+*.bz2
+
+# ---------------------------
+# Docker (File locali non necessari nel repo)
+# ---------------------------
+# .dockerignore gestisce cosa va nell'immagine,
+# ma potresti avere file locali relativi a Docker che non vuoi committare.
+# Esempio: file di override locali non standard
+# docker-compose.*.yml (se hai override locali specifici per utente)
+
+# ---------------------------
+# Altro
+# ---------------------------
+# SQL dumps (se fatti localmente e non devono essere versionati)
+*.sql
+*.sql.gz
+
+# File di configurazione di tool specifici
+# .php_cs.cache
+# .phpcs.cache
+# .phplint-cache
+# .eslintcache
+# .stylelintcache
+
+# Se usi WP-CLI, potresti avere una configurazione locale
+# wp-cli.local.yml
+
+# File specifici di tool di deploy (se non globali)
+# deploy.php
+# .deploy/
+# .dpl/
