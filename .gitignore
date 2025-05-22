@@ -32,6 +32,7 @@
 # È FONDAMENTALE ignorare questa cartella per evitare di committare i media degli utenti.
 /src/wp-content/uploads/
 /wp-content/uploads/
+data/
 
 # Cache e file temporanei di WordPress o plugin
 /wp-content/cache/
@@ -48,7 +49,25 @@ query-monitor.*.json
 
 # File di manutenzione di WordPress
 .maintenance
+# ---------------------------
+# Temi e Plugin di Default di WordPress (da ignorare)
+# ---------------------------
+# Temi di default (aggiungi altri se necessario)
+/src/wp-content/themes/twentytwentyone/
+/src/wp-content/themes/twentytwentytwo/
+/src/wp-content/themes/twentytwentythree/
+/src/wp-content/themes/twentytwentyfour/
+/src/wp-content/themes/twentytwentyfive/
+# Potresti voler usare un pattern più generico se i nomi cambiano spesso:
+# /src/wp-content/themes/twenty*/
 
+# Plugin di default
+/src/wp-content/plugins/akismet/
+/src/wp-content/plugins/hello.php
+
+# File indice vuoti spesso aggiunti da WordPress nei temi/plugin
+# /src/wp-content/themes/index.php
+# /src/wp-content/plugins/index.php
 # ---------------------------
 # Dipendenze (Node, Composer, ecc.)
 # ---------------------------

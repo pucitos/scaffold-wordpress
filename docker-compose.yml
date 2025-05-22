@@ -1,4 +1,3 @@
-version: '3.8'
 # Questo file è per l'ambiente di produzione
 # Assicurati di avere un file .env con le variabili necessarie
 services:

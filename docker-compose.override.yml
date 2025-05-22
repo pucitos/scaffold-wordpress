@@ -1,0 +1,92 @@
+services:
+  db: # Sovrascrive il servizio db per lo sviluppo
+    container_name: ${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-db-dev
+    # Per lo sviluppo, potresti voler esporre la porta del DB per client GUI, ma è opzionale
+    # ports:
+    #   - "${DEV_DB_PORT:-33060}:3306" # Usa DEV_DB_PORT da .env, default 33060
+    volumes:
+      - db_data_dev:/var/lib/mysql # Volume separato per il DB di sviluppo
+    environment:
+      # Usa le stesse variabili DB_USER/DB_PASSWORD ma con un DB_NAME diverso per dev
+      MYSQL_DATABASE: ${DB_NAME}_dev # Esempio: wordpress_dev
+      # Le altre credenziali (ROOT_PASSWORD, USER, PASSWORD) sono prese dal .env
+      # o dal docker-compose.yml di base se non sovrascritte qui.
+      # Per coerenza, assicurati che le variabili usate qui (DB_ROOT_PASSWORD, DB_USER, DB_PASSWORD)
+      # siano disponibili e corrette per l'ambiente di sviluppo.
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - app_network_dev # Rete specifica per sviluppo
+
+  wordpress: # Sovrascrive il servizio wordpress per lo sviluppo
+    build:
+      context: . # Costruisce l'immagine localmente usando il Dockerfile nella directory corrente
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: development # Specifica che è una build di sviluppo
+        TARGET_UID: "${HOST_UID}" # UID dell'utente host (dal Makefile)
+        TARGET_GID: "${HOST_GID}" # GID dell'utente host (dal Makefile)
+        # DEV_USER: devuser # Puoi mantenere i default del Dockerfile o passarli
+        # DEV_GROUP: devgroup
+
+    image: ${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-dev-image # Nome per l'immagine di sviluppo locale
+                                                                # Questo aiuta a distinguerla dall'immagine di produzione
+    container_name: ${COMPOSE_PROJECT_NAME:-scaffold-wordpress}-app-dev
+    
+    ports:
+      - "${DEV_WP_PORT:-8000}:80" # Espone WordPress sulla porta locale specificata in .env (default 8000)
+    volumes:
+      # Mappa il codice sorgente locale per sviluppo live, sovrascrivendo quello nell'immagine
+      - ./src/wp-content:/var/www/html/wp-content
+      # Volume separato per gli uploads di sviluppo
+      - ./data/dev-uploads:/var/www/html/wp-content/uploads
+    environment:
+      WORDPRESS_DEBUG: 1 # Abilita il debug di WordPress
+      # Specifica il nome del database di sviluppo
+      WORDPRESS_DB_NAME: ${DB_NAME}_dev
+      # Le altre variabili WORDPRESS_DB_* (HOST, USER, PASSWORD) sono generalmente prese
+      # dal docker-compose.yml di base, ma assicurati che puntino al servizio 'db'
+      # correttamente configurato per lo sviluppo (come sopra).
+      WORDPRESS_DB_HOST: db:3306 # 'db' si riferisce al servizio db qui sopra (o nel file base se non sovrascritto)
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      APACHE_RUN_USER: "${DEV_USER}"
+      APACHE_RUN_GROUP: "${DEV_GROUP}"
+      APACHE_RUN_UID: "${HOST_UID}"
+      APACHE_RUN_GID: "${HOST_GID}"
+
+      # Override per WP_HOME e WP_SITEURL per lo sviluppo locale
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_ENVIRONMENT_TYPE', 'development');
+        define('WP_HOME', 'http://localhost:${DEV_WP_PORT:-8000}');
+        define('WP_SITEURL', 'http://localhost:${DEV_WP_PORT:-8000}');
+        define('FS_METHOD', 'direct');
+        define('WP_DEBUG_LOG', true);
+        define('WP_DEBUG_DISPLAY', true);
+        define('SCRIPT_DEBUG', true);
+        # Non usare le chiavi di sicurezza di produzione per lo sviluppo,
+        # WordPress ne genererà di temporanee o puoi definirne di fittizie qui se necessario,
+        # ma solitamente non è un problema per lo sviluppo locale non specificarle.
+        # Le chiavi AUTH_KEY etc. dal .env sono pensate per la produzione.
+    networks:
+      - app_network_dev # Rete specifica per sviluppo
+    depends_on:
+      db:
+        condition: service_healthy # Attende che il DB sia pronto prima di avviare WordPress
+
+volumes:
+  db_data_dev: # Volume per i dati del database di sviluppo
+  # wp_uploads_dev: # Volume per gli uploads di sviluppo
+
+networks:
+  app_network_dev:
+    name: ${COMPOSE_PROJECT_NAME:-scaffold-wordpress}_dev_network # Rete specifica per lo sviluppo
+    driver: bridge
+
+  app_network_prod:
+      driver: bridge
+
+  traefik-public:
+      driver: bridge
+      external: false
