@@ -25,15 +25,26 @@ endif
 PROJECT_NAME ?= $(shell basename $(CURDIR))
 
 # Nome dell'immagine Docker per produzione (dal .env, con fallback)
-# L'utente DEVE configurare DOCKER_IMAGE_NAME nel .env per il proprio registry/progetto
 PROD_IMAGE_NAME ?= $(DOCKER_IMAGE_NAME)
-# Tag per l'immagine (dal .env, con fallback)
+# Tag per l'immagine (dal .env, con fallback a 'latest' se IMAGE_TAG non è definito)
 IMAGE_VERSION ?= $(IMAGE_TAG)
+ifeq ($(IMAGE_VERSION),)
+    IMAGE_VERSION := latest
+endif
 
 # Porta locale per lo sviluppo (dal .env, con fallback)
 LOCAL_DEV_PORT ?= $(DEV_WP_PORT)
 
 .PHONY: help setup dev-up dev-up-no-cache dev-down dev-logs dev-shell-wp dev-shell-db build push prod-up prod-down prod-pull prod-logs prod-shell-wp prod-shell-db clean
+
+# Variabile TAG per i comandi build e push.
+# Se TAG non è passato come argomento a make (es. make build TAG=v1.0.0),
+# userà il valore di IMAGE_VERSION come default.
+TAG_TO_USE ?= $(TAG)
+ifeq ($(TAG_TO_USE),)
+    TAG_TO_USE := $(IMAGE_VERSION)
+endif
+
 
 help:
 	@echo "Gestione Progetto WordPress con Docker - scaffold-wordpress"
@@ -116,12 +127,11 @@ dev-shell-db:
 # Build e Push Immagine di Produzione
 # Assicurati che DOCKER_IMAGE_NAME sia impostato nel tuo .env
 build:
-	@echo "Costruzione immagine di produzione $(PROD_IMAGE_NAME):$(TAG)..."
-	@docker build -t $(PROD_IMAGE_NAME):$(TAG) -f Dockerfile .
-
+	@echo "Costruzione immagine di produzione $(PROD_IMAGE_NAME):$(TAG_TO_USE)..."
+	@docker build -t $(PROD_IMAGE_NAME):$(TAG_TO_USE) -f Dockerfile .
 push:
-	@echo "Push immagine di produzione $(PROD_IMAGE_NAME):$(TAG) al registry..."
-	@docker push $(PROD_IMAGE_NAME):$(TAG)
+	@echo "Push immagine di produzione $(PROD_IMAGE_NAME):$(TAG_TO_USE) al registry..."
+	@docker push $(PROD_IMAGE_NAME):$(TAG_TO_USE)
 
 # Comandi per la Produzione (da eseguire sul server di produzione)
 # Questi comandi usano solo docker-compose.yml (e il .env del server)
